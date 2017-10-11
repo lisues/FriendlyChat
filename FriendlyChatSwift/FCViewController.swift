@@ -53,9 +53,9 @@ class FCViewController: UIViewController, UINavigationControllerDelegate {
     // MARK: Life Cycle
     
     override func viewDidLoad() {
-        self.signedInStatus(isSignedIn: true)
-        
-        // TODO: Handle what users see when view loads
+        // Lisue: Handle what users see when view loads
+        // self.signedInStatus(isSignedIn: true)
+        configureAuth()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -66,7 +66,27 @@ class FCViewController: UIViewController, UINavigationControllerDelegate {
     // MARK: Config
     
     func configureAuth() {
-        // TODO: configure firebase authentication
+        // Lisue: configure firebase authentication
+        // _refHandle = ref.child("messages").observe(.childAdded)
+        _authHandle = Auth.auth().addStateDidChangeListener { (auth: Auth, user: User?) in
+            //refresh table data
+            self.messages.removeAll(keepingCapacity: false)
+            self.messagesTable.reloadData()
+            
+            //check if there is a current user
+            if let activeUser = user {
+                if self.user != activeUser {
+                    self.user = activeUser
+                    self.signedInStatus(isSignedIn:  true)
+                    let name = user!.email!.components(separatedBy: "@")[0]
+                    self.displayName = name
+                }
+            } else {
+               // user must sign in
+                self.signedInStatus(isSignedIn: false)
+                self.loginSession()
+            }
+        }
     }
     
     func configureDatabase() {
@@ -88,6 +108,7 @@ class FCViewController: UIViewController, UINavigationControllerDelegate {
     deinit {
         // Lisue: set up what needs to be deinitialized when view is no longer being used
         ref.child("messages").removeObserver(withHandle: _refHandle)
+        Auth.auth().removeStateDidChangeListener(_authHandle)
     }
     
     // MARK: Remote Config
@@ -134,7 +155,7 @@ class FCViewController: UIViewController, UINavigationControllerDelegate {
         // Lisue: create method that pushes message to the firebase database
         var mData = data
         mData[Constants.MessageFields.name] = displayName
-       // ref.child("messages").child("great").childByAutoId().setValue(mData)
+        //ref.child("messages").child("great").childByAutoId().setValue(mData)
         ref.child("messages").childByAutoId().setValue(mData)
     }
     
